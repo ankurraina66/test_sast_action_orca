@@ -71,8 +71,105 @@ function getNonCompliantIssues(scanId) {
             return resultProcessor.processResults(responseJson.Items);
         })
         .then((result) => {
-            resolve(result);
-        })
+
+    const fs = require('fs');
+
+    const severityCounts = {
+        Critical: 0,
+        High: 0,
+        Medium: 0,
+        Low: 0,
+        Informational: 0
+    };
+
+    result.forEach(issue => {
+
+        if (severityCounts[issue.Severity] !== undefined) {
+            severityCounts[issue.Severity] += issue.Count;
+        }
+
+    });
+
+    const total =
+        severityCounts.Critical +
+        severityCounts.High +
+        severityCounts.Medium +
+        severityCounts.Low +
+        severityCounts.Informational;
+
+    let riskLevel = "No Risk";
+    let riskIcon = "⚪";
+
+    if (severityCounts.Critical > 0) {
+        riskLevel = "Critical Risk";
+        riskIcon = "🔴";
+    }
+    else if (severityCounts.High > 0) {
+        riskLevel = "High Risk";
+        riskIcon = "🔴";
+    }
+    else if (severityCounts.Medium > 0) {
+        riskLevel = "Medium Risk";
+        riskIcon = "🟡";
+    }
+    else if (severityCounts.Low > 0) {
+        riskLevel = "Low Risk";
+        riskIcon = "🟢";
+    }
+
+    const baseUrl =
+        process.env.INPUT_BASEURL ||
+        settings.getServiceUrl().replace("/api/v4","");
+
+    const scanUrl =
+        `${baseUrl}/main/myapps/${process.env.INPUT_APPLICATION_ID}/scans/${scanId}`;
+
+    const markdown = `
+# HCL AppScan Scan Summary
+
+## ${riskIcon} ${riskLevel}
+
+**Scan ID:** ${scanId}  
+**Repository:** ${process.env.GITHUB_REPOSITORY}
+
+---
+
+### Total Vulnerabilities: ${total}
+
+| Critical | High | Medium | Low | Info |
+|---------|------|--------|-----|------|
+| ${severityCounts.Critical} | ${severityCounts.High} | ${severityCounts.Medium} | ${severityCounts.Low} | ${severityCounts.Informational} |
+
+---
+
+[View scan in AppScan](${scanUrl})
+`;
+
+    // PR comment file
+    fs.writeFileSync(
+        "appscan_pr_report.md",
+        markdown
+    );
+
+    // GitHub step summary
+    if (process.env.GITHUB_STEP_SUMMARY) {
+
+        fs.appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            markdown
+        );
+
+    }
+
+    resolve({
+        total,
+        severityCounts,
+        riskLevel,
+        riskIcon
+    });
+
+})
+     
         .catch((error) => {
             reject(error);
         })
