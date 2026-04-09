@@ -8,6 +8,7 @@ import * as constants from './constants.js';
 import resultProcessor from './resultProcessor.js';
 import settings from './settings.js';
 import utils from './utils.js';
+import fs from 'fs';
 
 let token = null
 
