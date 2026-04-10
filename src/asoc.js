@@ -31,15 +31,11 @@ function login(key, secret) {
             constants.API_LOGIN;
 
         got.post(url, {
-
             json: {
-
                 keyId: key,
                 keySecret: secret,
                 clientType: utils.getClientType()
-
             }
-
         })
 
         .then(res => {
@@ -81,13 +77,11 @@ function getScanResults(scanId) {
 
         login(key, secret)
 
-        .then(() => {
+        .then(() =>
+            getNonCompliantIssues(scanId)
+        )
 
-            return resolve(
-                getNonCompliantIssues(scanId)
-            );
-
-        })
+        .then(resolve)
 
         .catch(reject);
 
@@ -122,9 +116,7 @@ function getNonCompliantIssues(scanId) {
             query;
 
         got.get(url, {
-
             headers: getHeaders()
-
         })
 
         .then(res => {
@@ -139,13 +131,33 @@ function getNonCompliantIssues(scanId) {
 
         .then(result => {
 
-            result =
-                result || [];
+            /*
+            ---------------------------------
+            Normalize result format
+            fixes "result.forEach is not function"
+            ---------------------------------
+            */
+
+            if (!result) {
+                result = [];
+            }
+
+            if (!Array.isArray(result)) {
+
+                result =
+                    Object.keys(result).map(sev => ({
+
+                        Severity: sev,
+                        Count: result[sev]
+
+                    }));
+
+            }
 
             /*
-            -------------------------
+            ---------------------------------
             Count severities
-            -------------------------
+            ---------------------------------
             */
 
             const counts = {
@@ -161,11 +173,12 @@ function getNonCompliantIssues(scanId) {
             result.forEach(issue => {
 
                 if (
+                    issue &&
                     counts[issue.Severity] !== undefined
                 ) {
 
                     counts[issue.Severity] +=
-                        issue.Count;
+                        Number(issue.Count || 0);
 
                 }
 
@@ -179,9 +192,9 @@ function getNonCompliantIssues(scanId) {
                 );
 
             /*
-            -------------------------
-            Determine risk
-            -------------------------
+            ---------------------------------
+            Risk level
+            ---------------------------------
             */
 
             let risk =
@@ -231,9 +244,9 @@ function getNonCompliantIssues(scanId) {
             }
 
             /*
-            -------------------------
+            ---------------------------------
             Scan URL
-            -------------------------
+            ---------------------------------
             */
 
             const baseUrl =
@@ -247,9 +260,9 @@ function getNonCompliantIssues(scanId) {
                 `/scans/${scanId}`;
 
             /*
-            -------------------------
+            ---------------------------------
             Markdown summary
-            -------------------------
+            ---------------------------------
             */
 
             const markdown = `
@@ -276,22 +289,20 @@ function getNonCompliantIssues(scanId) {
 `;
 
             /*
-            -------------------------
+            ---------------------------------
             Write PR comment file
-            -------------------------
+            ---------------------------------
             */
 
             fs.writeFileSync(
-
                 "appscan_pr_report.md",
                 markdown
-
             );
 
             /*
-            -------------------------
-            Write GitHub summary
-            -------------------------
+            ---------------------------------
+            GitHub Step Summary
+            ---------------------------------
             */
 
             if (
@@ -299,18 +310,16 @@ function getNonCompliantIssues(scanId) {
             ) {
 
                 fs.appendFileSync(
-
                     process.env.GITHUB_STEP_SUMMARY,
                     markdown
-
                 );
 
             }
 
             /*
-            -------------------------
+            ---------------------------------
             Generate SARIF
-            -------------------------
+            ---------------------------------
             */
 
             const sarif = {
@@ -463,12 +472,6 @@ function mapLevel(severity) {
     return "note";
 
 }
-
-/*
------------------------------------------
-Export
------------------------------------------
-*/
 
 export default {
 
