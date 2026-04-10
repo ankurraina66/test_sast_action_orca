@@ -1,6 +1,5 @@
 /*
-Copyright 2022, 2024 HCL America, Inc.
-Licensed under the Apache License, Version 2.0
+Copyright 2022, 2024 HCL America
 */
 
 import got from 'got';
@@ -12,11 +11,6 @@ import fs from 'fs';
 
 let token = null;
 
-/*
------------------------------------------
-Login
------------------------------------------
-*/
 function login(key, secret) {
 
     return new Promise((resolve, reject) => {
@@ -31,20 +25,21 @@ function login(key, secret) {
             constants.API_LOGIN;
 
         got.post(url, {
+
             json: {
+
                 keyId: key,
                 keySecret: secret,
                 clientType: utils.getClientType()
+
             }
+
         })
 
         .then(res => {
 
-            const body =
-                JSON.parse(res.body);
-
             token =
-                body.Token;
+                JSON.parse(res.body).Token;
 
             resolve();
 
@@ -56,11 +51,6 @@ function login(key, secret) {
 
 }
 
-/*
------------------------------------------
-Main entry
------------------------------------------
-*/
 function getScanResults(scanId) {
 
     return new Promise((resolve, reject) => {
@@ -78,7 +68,7 @@ function getScanResults(scanId) {
         login(key, secret)
 
         .then(() =>
-            getNonCompliantIssues(scanId)
+            getIssues(scanId)
         )
 
         .then(resolve)
@@ -89,25 +79,16 @@ function getScanResults(scanId) {
 
 }
 
-/*
------------------------------------------
-Fetch issue summary
------------------------------------------
-*/
-function getNonCompliantIssues(scanId) {
+function getIssues(scanId) {
 
     return new Promise((resolve, reject) => {
 
         const query =
-            "?applyPolicies=All" +
-            "&%24top=100" +
-            "&%24apply=filter" +
-            "%28Status%20eq%20%27Open%27" +
+            "?applyPolicies=None" +
+            "&%24filter=Status%20eq%20%27Open%27" +
             "%20or%20Status%20eq%20%27New%27" +
             "%20or%20Status%20eq%20%27Reopened%27" +
-            "%20or%20Status%20eq%20%27InProgress%27%29" +
-            "%2Fgroupby%28%28Severity%29%2Caggregate" +
-            "%28%24count%20as%20Count%29%29";
+            "%20or%20Status%20eq%20%27InProgress%27";
 
         const url =
             settings.getServiceUrl() +
@@ -116,7 +97,17 @@ function getNonCompliantIssues(scanId) {
             query;
 
         got.get(url, {
-            headers: getHeaders()
+
+            headers: {
+
+                Authorization:
+                    "Bearer " + token,
+
+                Accept:
+                    "application/json"
+
+            }
+
         })
 
         .then(res => {
@@ -124,41 +115,14 @@ function getNonCompliantIssues(scanId) {
             const json =
                 JSON.parse(res.body);
 
-            return resultProcessor
-                .processResults(json.Items);
+            return json.Items;
 
         })
 
-        .then(result => {
+        .then(issues => {
 
-            /*
-            ---------------------------------
-            Normalize result format
-            fixes "result.forEach is not function"
-            ---------------------------------
-            */
-
-            if (!result) {
-                result = [];
-            }
-
-            if (!Array.isArray(result)) {
-
-                result =
-                    Object.keys(result).map(sev => ({
-
-                        Severity: sev,
-                        Count: result[sev]
-
-                    }));
-
-            }
-
-            /*
-            ---------------------------------
-            Count severities
-            ---------------------------------
-            */
+            issues =
+                issues || [];
 
             const counts = {
 
@@ -170,15 +134,13 @@ function getNonCompliantIssues(scanId) {
 
             };
 
-            result.forEach(issue => {
+            issues.forEach(i => {
 
                 if (
-                    issue &&
-                    counts[issue.Severity] !== undefined
+                    counts[i.Severity] !== undefined
                 ) {
 
-                    counts[issue.Severity] +=
-                        Number(issue.Count || 0);
+                    counts[i.Severity]++;
 
                 }
 
@@ -191,92 +153,70 @@ function getNonCompliantIssues(scanId) {
                     0
                 );
 
-            /*
-            ---------------------------------
-            Risk level
-            ---------------------------------
-            */
-
-            let risk =
-                "No Risk";
-
-            let icon =
-                "⚪";
+            let risk = "No Risk";
+            let icon = "⚪";
 
             if (counts.Critical > 0) {
 
-                risk =
-                    "Critical Risk";
-
-                icon =
-                    "🔴";
+                risk = "Critical Risk";
+                icon = "🔴";
 
             }
 
             else if (counts.High > 0) {
 
-                risk =
-                    "High Risk";
-
-                icon =
-                    "🔴";
+                risk = "High Risk";
+                icon = "🔴";
 
             }
 
             else if (counts.Medium > 0) {
 
-                risk =
-                    "Medium Risk";
-
-                icon =
-                    "🟡";
+                risk = "Medium Risk";
+                icon = "🟡";
 
             }
 
             else if (counts.Low > 0) {
 
-                risk =
-                    "Low Risk";
-
-                icon =
-                    "🟢";
+                risk = "Low Risk";
+                icon = "🟢";
 
             }
 
-            /*
-            ---------------------------------
-            Scan URL
-            ---------------------------------
-            */
-
             const baseUrl =
-                settings
-                .getServiceUrl()
+                settings.getServiceUrl()
                 .replace("/api/v4","");
 
             const scanUrl =
-                `${baseUrl}/main/myapps/` +
-                `${process.env.INPUT_APPLICATION_ID}` +
-                `/scans/${scanId}`;
+                `${baseUrl}/main/myapps/${process.env.INPUT_APPLICATION_ID}/scans/${scanId}`;
 
-            /*
-            ---------------------------------
-            Markdown summary
-            ---------------------------------
-            */
+            const appUrl =
+                `${baseUrl}/main/myapps/${process.env.INPUT_APPLICATION_ID}`;
 
-            const markdown = `
+            const scanTime =
+                new Date()
+                .toISOString()
+                .replace("T"," ")
+                .substring(0,19);
+
+            const md = `
 
 # HCL AppScan SAST Scan Summary
 
-## ${icon} ${risk}
+### Scan Information
 
-**Scan ID:** ${scanId}  
-**Repository:** ${process.env.GITHUB_REPOSITORY}
+| Field | Value |
+|------|-------|
+| Scan Type | SAST |
+| Scan ID | [${scanId}](${scanUrl}) |
+| Application | [${process.env.INPUT_APPLICATION_ID}](${appUrl}) |
+| Repository | ${process.env.GITHUB_REPOSITORY} |
+| Scan Time | ${scanTime} |
 
 ---
 
-### Total Vulnerabilities: ${total}
+## Total Vulnerabilities: ${total}
 
 | Critical | High | Medium | Low | Info |
 |----------|------|--------|-----|------|
@@ -284,43 +224,27 @@ function getNonCompliantIssues(scanId) {
 
 ---
 
-[View scan in AppScan](${scanUrl})
+[View scan details in AppScan](${scanUrl})
 
 `;
 
-            /*
-            ---------------------------------
-            Write PR comment file
-            ---------------------------------
-            */
-
             fs.writeFileSync(
                 "appscan_pr_report.md",
-                markdown
+                md
             );
-
-            /*
-            ---------------------------------
-            GitHub Step Summary
-            ---------------------------------
-            */
 
             if (
                 process.env.GITHUB_STEP_SUMMARY
             ) {
 
                 fs.appendFileSync(
+
                     process.env.GITHUB_STEP_SUMMARY,
-                    markdown
+                    md
+
                 );
 
             }
-
-            /*
-            ---------------------------------
-            Generate SARIF
-            ---------------------------------
-            */
 
             const sarif = {
 
@@ -343,20 +267,20 @@ function getNonCompliantIssues(scanId) {
 
                         results:
 
-                        result.map(issue => ({
+                        issues.map(i => ({
 
                             ruleId:
-                                issue.Severity,
+                                i.IssueType || "AppScanIssue",
 
                             level:
                                 mapLevel(
-                                    issue.Severity
+                                    i.Severity
                                 ),
 
                             message: {
 
                                 text:
-                                    `${issue.Severity} issue detected`
+                                    i.IssueType
 
                             },
 
@@ -369,14 +293,13 @@ function getNonCompliantIssues(scanId) {
                                         artifactLocation: {
 
                                             uri:
-                                                "source"
+                                                i.Location || "source"
 
                                         },
 
                                         region: {
 
-                                            startLine:
-                                                1
+                                            startLine: 1
 
                                         }
 
@@ -406,16 +329,9 @@ function getNonCompliantIssues(scanId) {
 
             );
 
-            console.log(
-                "Summary + SARIF generated"
-            );
-
             resolve({
-
                 total,
-                counts,
-                risk
-
+                counts
             });
 
         })
@@ -426,48 +342,16 @@ function getNonCompliantIssues(scanId) {
 
 }
 
-/*
------------------------------------------
-Headers
------------------------------------------
-*/
-function getHeaders() {
-
-    return {
-
-        Authorization:
-            "Bearer " + token,
-
-        Accept:
-            "application/json"
-
-    };
-
-}
-
-/*
------------------------------------------
-SARIF severity mapping
------------------------------------------
-*/
-function mapLevel(severity) {
+function mapLevel(sev) {
 
     if (
-        severity === "Critical" ||
-        severity === "High"
-    ) {
-
-        return "error";
-
-    }
+        sev === "Critical" ||
+        sev === "High"
+    ) return "error";
 
     if (
-        severity === "Medium"
-    ) {
-
-        return "warning";
-
-    }
+        sev === "Medium"
+    ) return "warning";
 
     return "note";
 
