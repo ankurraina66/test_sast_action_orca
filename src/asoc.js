@@ -51,7 +51,7 @@ function login(key, secret) {
 
 }
 
-function getScanResults(scanId) {
+function getScanResults(scanId, prContext = {}) {
 
     return new Promise((resolve, reject) => {
 
@@ -68,7 +68,7 @@ function getScanResults(scanId) {
         login(key, secret)
 
         .then(() =>
-            getIssues(scanId)
+            getIssues(scanId, prContext = {})
         )
 
         .then(resolve)
@@ -115,7 +115,7 @@ console.log("---------------------- inside  getSastScanDetails->", scanId);
         return null;
     }
 }
-async function getIssues(scanId) {
+async function getIssues(scanId, prContext = {}) {
 
     return new Promise((resolve, reject) => {
 
@@ -257,15 +257,47 @@ try {
                 .replace("T"," ")
                 .substring(0,19);
 				
-			const isPR = process.env.GITHUB_EVENT_NAME === "pull_request";
+			const isPR =
+    prContext.isPR || false;
+
+const prNumber =
+    prContext.prNumber || "";
+
+const branchName =
+    prContext.branchName || "";
+
+const repoName =
+    prContext.repoName || process.env.GITHUB_REPOSITORY;
+
+const commitSha =
+    prContext.commitSha
+    ? prContext.commitSha.substring(0,7)
+    : "";
 
 			const scanLabel = isPR ? "SAST PR Scan Summary" : "SAST Scan Summary";
 
 			console.log("?????????????????????????----------------------DEBUG: Final AppName used in summary ->", appName);
 
+			const prSection =
+			    isPR
+			    ? `
+			
+			### Pull Request Information
+			
+			| Field | Value |
+			|------|------|
+			| PR Number | #${prNumber} |
+			| Branch | ${branchName} |
+			| Commit | ${commitSha} |
+			
+			---`
+			    : "";
+
 	            const md = `
 
 #  HCL AppScan ${scanLabel}
+
+${prSection}
 
 ### Scan Information
 
