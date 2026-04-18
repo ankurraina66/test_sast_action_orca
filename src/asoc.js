@@ -68,7 +68,7 @@ function getScanResults(scanId, prContext = {}) {
         login(key, secret)
 
         .then(() =>
-            getIssues(scanId, prContext = {})
+            getIssues(scanId, prContext)
         )
 
         .then(resolve)
