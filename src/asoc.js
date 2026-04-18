@@ -116,7 +116,7 @@ console.log("---------------------- inside  getSastScanDetails->", scanId);
     }
 }
 async function getIssues(scanId, prContext = {}) {
-
+	console.log(">>>>>>>>>>>>>>>>>>>>>PR CONTEXT RECEIVED:", prContext);
     return new Promise((resolve, reject) => {
 
         const query =
