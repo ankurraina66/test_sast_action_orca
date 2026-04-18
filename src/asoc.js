@@ -79,7 +79,43 @@ function getScanResults(scanId) {
 
 }
 
-function getIssues(scanId) {
+async function getSastScanDetails(scanId) {
+console.log("---------------------- inside  getSastScanDetails->", scanId);
+    const url =
+        settings.getServiceUrl()
+        + "/Scans/Sast/"
+        + scanId;
+
+	console.log(">>>>>>>>>>>>>>>>>>>>>>>>>DEBUG: Calling API ->", url);
+
+    try {
+	console.log("---------------------- inside  getSastScanDetails-> executing api call");
+        const res =
+            await got.get(url, {
+
+                headers: {
+
+                    Authorization:
+                        "Bearer " + token,
+
+                    Accept:
+                        "application/json"
+                }
+            });
+
+        return JSON.parse(res.body);
+
+    } catch (e) {
+
+        console.log(
+            "Failed to fetch SAST scan details:",
+            e.message
+        );
+
+        return null;
+    }
+}
+async function getIssues(scanId) {
 
     return new Promise((resolve, reject) => {
 
@@ -119,7 +155,7 @@ function getIssues(scanId) {
 
         })
 
-        .then(issues => {
+        .then(async issues => {
 
             issues =
                 issues || [];
@@ -190,19 +226,46 @@ function getIssues(scanId) {
 
             const scanUrl =
                 `${baseUrl}/main/myapps/${process.env.INPUT_APPLICATION_ID}/scans/${scanId}`;
+			const applicationId =   process.env.INPUT_APPLICATION_ID;
+		    let appName =
+    applicationId;
 
-            const appUrl =
-                `${baseUrl}/main/myapps/${process.env.INPUT_APPLICATION_ID}`;
+try {
+
+    const scanDetails =
+        await getSastScanDetails(scanId);
+
+    if(scanDetails && scanDetails.AppName){
+
+        appName =
+            scanDetails.AppName;
+    }
+
+} catch (e) {
+
+    console.log(
+        "Failed to fetch AppName from scan details"
+    );
+
+}
+
+			const appUrl =`${baseUrl}/main/myapps/${applicationId}`;
 
             const scanTime =
                 new Date()
                 .toISOString()
                 .replace("T"," ")
                 .substring(0,19);
+				
+			const isPR = process.env.GITHUB_EVENT_NAME === "pull_request";
 
-            const md = `
+			const scanLabel = isPR ? "SAST PR Scan Summary" : "SAST Scan Summary";
 
-# HCL AppScan SAST Scan Summary
+			console.log("?????????????????????????----------------------DEBUG: Final AppName used in summary ->", appName);
+
+	            const md = `
+
+#  HCL AppScan ${scanLabel}
 
 ### Scan Information
 
@@ -210,7 +273,7 @@ function getIssues(scanId) {
 |------|-------|
 | Scan Type | SAST |
 | Scan ID | [${scanId}](${scanUrl}) |
-| Application | [${process.env.INPUT_APPLICATION_ID}](${appUrl}) |
+| Application Name | [${appName}](${appUrl}) |
 | Repository | ${process.env.GITHUB_REPOSITORY} |
 | Scan Time | ${scanTime} |
 
