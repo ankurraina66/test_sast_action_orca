@@ -278,20 +278,29 @@ const commitSha =
 
 			console.log("?????????????????????????----------------------DEBUG: Final AppName used in summary ->", appName);
 
-			const prSection =
-			    isPR
-			    ? `
-			
-			### Pull Request Information
-			
-			| Field | Value |
-			|------|------|
-			| PR Number | #${prNumber} |
-			| Branch | ${branchName} |
-			| Commit | ${commitSha} |
-			
-			---`
-			    : "";
+			const prUrl =
+ `https://github.com/${repoName}/pull/${prNumber}`;
+
+const branchUrl =
+ `https://github.com/${repoName}/tree/${branchName}`;
+
+const commitUrl =
+ `https://github.com/${repoName}/commit/${prContext.commitSha}`;
+
+const prSection =
+    isPR
+    ? `
+
+## Pull Request Information
+
+| Field | Value |
+|------|------|
+| PR Number | [#${prNumber}](${prUrl}) |
+| Branch | [${branchName}](${branchUrl}) |
+| Commit | [${commitSha}](${commitUrl}) |
+
+---`
+    : "";
 
 	            const md = `
 
