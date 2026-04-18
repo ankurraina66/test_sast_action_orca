@@ -81,10 +81,10 @@ function getScanResults(scanId) {
 
 async function getSastScanDetails(scanId) {
 console.log("---------------------- inside  getSastScanDetails->", scanId);
-    const url =
-        settings.getServiceUrl()
-        + "/Scans/Sast/"
-        + scanId;
+   const url =
+    settings.getServiceUrl()
+    + "/api/v4/Scans/Sast/"
+    + scanId;
 
 	console.log(">>>>>>>>>>>>>>>>>>>>>>>>>DEBUG: Calling API ->", url);
 
