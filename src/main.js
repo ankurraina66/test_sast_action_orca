@@ -18,8 +18,32 @@ import settings from './settings.js';
 /*
  detect PR context
 */
+/*
+ detect PR context
+*/
 const isPR =
-    process.env.GITHUB_EVENT_NAME === "pull_request";
+    process.env.INPUT_IS_PR_SCAN === "true"
+    || process.env.GITHUB_EVENT_NAME === "pull_request";
+
+/*
+ PR metadata from workflow inputs
+*/
+const prNumber =
+    process.env.INPUT_PR_NUMBER || "";
+
+const branchName =
+    process.env.INPUT_BRANCH_NAME
+    || process.env.GITHUB_HEAD_REF
+    || process.env.GITHUB_REF_NAME
+    || "";
+
+const repoName =
+    process.env.INPUT_REPO_NAME
+    || process.env.GITHUB_REPOSITORY
+    || "";
+
+const commitSha =
+    process.env.GITHUB_SHA || "";
 
 core.info(`GitHub Event: ${process.env.GITHUB_EVENT_NAME}`);
 
@@ -27,9 +51,13 @@ if(isPR){
 
     core.info("Running SAST scan for Pull Request");
 
-    core.info(`Repository: ${process.env.GITHUB_REPOSITORY}`);
+    core.info(`Repository: ${repoName}`);
 
-    core.info(`Branch: ${process.env.GITHUB_HEAD_REF}`);
+    core.info(`PR Number: ${prNumber}`);
+
+    core.info(`Branch: ${branchName}`);
+
+    core.info(`Commit: ${commitSha}`);
 
 }
 else{
@@ -123,7 +151,16 @@ saclientutil.downloadClient()
              works for BOTH the push and PR
 
             */
-            return asoc.getScanResults(scanId);
+            return asoc.getScanResults(
+                scanId,
+                {
+                    isPR,
+                    prNumber,
+                    branchName,
+                    repoName,
+                    commitSha
+                }
+            );
 
         })
 
