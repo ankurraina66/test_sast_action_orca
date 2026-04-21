@@ -598,7 +598,13 @@ ${i.Line || ""}
 
 <td>
 
-${i.Remediation || "See AppScan guidance"}
+${
+    i.Reference
+    ? `<a href="${i.Reference}" target="_blank">View fix</a>`
+    : i.Remediation
+        ? `<a href="${i.Remediation}" target="_blank">View fix</a>`
+        : `<a href="${scanUrl}" target="_blank">View in AppScan</a>`
+}
 
 </td>
 
