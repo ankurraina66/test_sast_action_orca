@@ -229,17 +229,22 @@ async function getIssues(scanId, prContext = {}) {
 			const applicationId =   process.env.INPUT_APPLICATION_ID;
 		    let appName =
     applicationId;
+			let executionId = "";
 
 try {
 
     const scanDetails =
         await getSastScanDetails(scanId);
 
-    if(scanDetails && scanDetails.AppName){
+   if(scanDetails){
 
-        appName =
-            scanDetails.AppName;
-    }
+    appName =
+        scanDetails.AppName || appName;
+
+    executionId =
+        scanDetails.ExecutionId || "";
+
+}
 
 } catch (e) {
 
@@ -286,6 +291,8 @@ const branchUrl =
 
 const commitUrl =
  `https://github.com/${repoName}/commit/${prContext.commitSha}`;
+const issueBaseUrl =
+ `${baseUrl}/main/myapps/${applicationId}/scans/${scanId}/scanIssues?executionId=${executionId}`;
 
 const prSection =
     isPR
@@ -346,7 +353,8 @@ ${prSection}
 			        issues,
 			        counts,
 			        scanUrl,
-			        appName
+			        appName,
+					issueBaseUrl
 			    );
 			
 			fs.writeFileSync(
@@ -482,7 +490,8 @@ function generateHtmlReport(
     issues,
     counts,
     scanUrl,
-    appName
+    appName,
+	issueBaseUrl
 ){
 
 return `
@@ -561,8 +570,8 @@ th {
 <tr>
 
 <th>Severity</th>
-<th>Issue</th>
-<th>File</th>
+<th>Issue type</th>
+<th>Location</th>
 <th>Line</th>
 <th>How to fix</th>
 
@@ -592,19 +601,17 @@ ${i.Location || ""}
 
 <td>
 
-${i.Line || ""}
+${(i.Location || "").split(":").pop()}
 
 </td>
 
 <td>
 
-${
-    i.Reference
-    ? `<a href="${i.Reference}" target="_blank">View fix</a>`
-    : i.Remediation
-        ? `<a href="${i.Remediation}" target="_blank">View fix</a>`
-        : `<a href="${scanUrl}" target="_blank">View in AppScan</a>`
-}
+<a href="${issueBaseUrl}&filterIds=${i.Id}" target="_blank">
+
+View Fix in AppScan
+
+</a>
 
 </td>
 
