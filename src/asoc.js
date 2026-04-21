@@ -337,6 +337,23 @@ ${prSection}
                 md
             );
 
+			/*
+			 ADD HTML REPORT GENERATION HERE
+			*/
+			
+			const htmlReport =
+			    generateHtmlReport(
+			        issues,
+			        counts,
+			        scanUrl,
+			        appName
+			    );
+			
+			fs.writeFileSync(
+			    "appscan-report.html",
+			    htmlReport
+			);
+
             if (
                 process.env.GITHUB_STEP_SUMMARY
             ) {
@@ -459,6 +476,155 @@ function mapLevel(sev) {
 
     return "note";
 
+}
+
+function generateHtmlReport(
+    issues,
+    counts,
+    scanUrl,
+    appName
+){
+
+return `
+
+<html>
+
+<head>
+
+<style>
+
+body {
+ font-family: Arial;
+ margin: 40px;
+}
+
+table {
+ border-collapse: collapse;
+ width: 100%;
+ margin-bottom: 30px;
+}
+
+th, td {
+ border: 1px solid #ddd;
+ padding: 8px;
+}
+
+th {
+ background: #f5f5f5;
+}
+
+.sev-critical { color: red; }
+.sev-high { color: darkred; }
+.sev-medium { color: orange; }
+.sev-low { color: green; }
+
+</style>
+
+</head>
+
+<body>
+
+<h1>HCL AppScan SAST Report</h1>
+
+<h2>Application: ${appName}</h2>
+
+<h3>Summary</h3>
+
+<table>
+
+<tr>
+
+<th>Critical</th>
+<th>High</th>
+<th>Medium</th>
+<th>Low</th>
+<th>Info</th>
+
+</tr>
+
+<tr>
+
+<td>${counts.Critical}</td>
+<td>${counts.High}</td>
+<td>${counts.Medium}</td>
+<td>${counts.Low}</td>
+<td>${counts.Informational}</td>
+
+</tr>
+
+</table>
+
+<h3>Issues</h3>
+
+<table>
+
+<tr>
+
+<th>Severity</th>
+<th>Issue</th>
+<th>File</th>
+<th>Line</th>
+<th>How to fix</th>
+
+</tr>
+
+${issues.map(i => `
+
+<tr>
+
+<td class="sev-${i.Severity.toLowerCase()}">
+
+${i.Severity}
+
+</td>
+
+<td>
+
+${i.IssueType}
+
+</td>
+
+<td>
+
+${i.Location || ""}
+
+</td>
+
+<td>
+
+${i.Line || ""}
+
+</td>
+
+<td>
+
+${i.Remediation || "See AppScan guidance"}
+
+</td>
+
+</tr>
+
+`).join("")}
+
+</table>
+
+<p>
+
+Full scan:
+
+<a href="${scanUrl}">
+
+View in AppScan
+
+</a>
+
+</p>
+
+</body>
+
+</html>
+
+`;
 }
 
 export default {
