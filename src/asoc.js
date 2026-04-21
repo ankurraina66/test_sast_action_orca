@@ -522,10 +522,10 @@ th {
  background: #f5f5f5;
 }
 
-.sev-critical { color: red; }
-.sev-high { color: darkred; }
-.sev-medium { color: orange; }
-.sev-low { color: green; }
+.sev-critical { color: black; }
+.sev-high { color: black; }
+.sev-medium { color: black; }
+.sev-low { color: black; }
 
 </style>
 
