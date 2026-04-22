@@ -351,10 +351,14 @@ ${prSection}
 
 `;
 
-            fs.writeFileSync(
-                "appscan_pr_report.md",
-                md
-            );
+           const mdFileName = isPR
+				? "appscan-pr-report.md"
+				: "appscan-build-summary-report.md";
+
+			fs.writeFileSync(
+				mdFileName,
+				md
+			);
 
 			/*
 			 ADD HTML REPORT GENERATION HERE
@@ -369,12 +373,17 @@ ${prSection}
 					issueBaseUrl,
 					scanId,
 					appUrl,
-					scanTime
+					scanTime,
+					prContext
 			    );
 			
+			const fileName = isPR
+				? "appscan-pr-report.html"
+				: "appscan-build-summary-report.html";
+
 			fs.writeFileSync(
-			    "appscan-report.html",
-			    htmlReport
+				fileName,
+				htmlReport
 			);
 
             if (
@@ -509,8 +518,23 @@ function generateHtmlReport(
 	issueBaseUrl,
 	scanId,
     appUrl,
-    scanTime
-){
+    scanTime,
+	prContext = {}
+)
+{
+const isPR = prContext.isPR || false;
+
+const prNumber = prContext.prNumber || "";
+const branchName = prContext.branchName || "";
+const repoName = prContext.repoName || process.env.GITHUB_REPOSITORY;
+
+const commitSha = prContext.commitSha
+    ? prContext.commitSha.substring(0,7)
+    : "";
+
+const prUrl = `https://github.com/${repoName}/pull/${prNumber}`;
+const branchUrl = `https://github.com/${repoName}/tree/${branchName}`;
+const commitUrl = `https://github.com/${repoName}/commit/${prContext.commitSha}`;
 
 return `
 
@@ -551,7 +575,51 @@ th {
 
 <body>
 
-<h1>HCL AppScan SAST Report</h1>
+<h1>HCL AppScan SAST ${isPR ? "PR Scan Summary" : "Scan Summary"}</h1>
+
+${isPR ? `
+
+<h3>Pull Request Information</h3>
+
+<table>
+
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+
+<tr>
+<td>PR Number</td>
+<td>
+<a href="${prUrl}" target="_blank">
+#${prNumber}
+</a>
+</td>
+</tr>
+
+<tr>
+<td>Branch</td>
+<td>
+<a href="${branchUrl}" target="_blank">
+${branchName}
+</a>
+</td>
+</tr>
+
+<tr>
+<td>Commit</td>
+<td>
+<a href="${commitUrl}" target="_blank">
+${commitSha}
+</a>
+</td>
+</tr>
+
+</table>
+
+<br/>
+
+` : ""}
 
 <h3>Scan Information</h3>
 
