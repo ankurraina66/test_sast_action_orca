@@ -230,6 +230,9 @@ async function getIssues(scanId, prContext = {}) {
 		    let appName =
     applicationId;
 			let executionId = "";
+			let scanName = "";
+let createdAt = "";
+let technology = "SAST";
 
 try {
 
@@ -243,6 +246,15 @@ try {
 
     executionId =
         scanDetails.ExecutionId || "";
+
+	scanName =
+        scanDetails.Name || "";
+
+    createdAt =
+        scanDetails.CreatedAt || "";
+
+    technology =
+        scanDetails.Technology || "SAST";
 
 }
 
@@ -354,7 +366,11 @@ ${prSection}
 			        counts,
 			        scanUrl,
 			        appName,
-					issueBaseUrl
+					issueBaseUrl,
+					scanName,
+				    createdAt,
+				    executionId,
+				    technology
 			    );
 			
 			fs.writeFileSync(
@@ -491,7 +507,11 @@ function generateHtmlReport(
     counts,
     scanUrl,
     appName,
-	issueBaseUrl
+	issueBaseUrl,
+	scanName,
+    createdAt,
+    executionId,
+    technology
 ){
 
 return `
@@ -534,6 +554,61 @@ th {
 <body>
 
 <h1>HCL AppScan SAST Report</h1>
+
+<h3>Scan Details</h3>
+
+<table>
+
+<tr>
+<th>Scan Name</th>
+<td>${scanName}</td>
+</tr>
+
+<tr>
+<th>Application</th>
+<td>${appName}</td>
+</tr>
+
+<tr>
+<th>Technology</th>
+<td>${technology}</td>
+</tr>
+
+<tr>
+<th>Execution ID</th>
+<td>${executionId}</td>
+</tr>
+
+<tr>
+<th>Scan Time</th>
+<td>${createdAt}</td>
+</tr>
+
+<tr>
+<th>Repository</th>
+<td>${process.env.GITHUB_REPOSITORY}</td>
+</tr>
+
+<tr>
+<th>Branch</th>
+<td>${process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME}</td>
+</tr>
+
+<tr>
+<th>Commit</th>
+<td>${process.env.GITHUB_SHA?.substring(0,7)}</td>
+</tr>
+
+<tr>
+<th>Scan URL</th>
+<td>
+<a href="${scanUrl}">
+Open in AppScan
+</a>
+</td>
+</tr>
+
+</table>
 
 <h2>Application: ${appName}</h2>
 
