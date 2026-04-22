@@ -367,10 +367,9 @@ ${prSection}
 			        scanUrl,
 			        appName,
 					issueBaseUrl,
-					scanName,
-				    createdAt,
-				    executionId,
-				    technology
+					scanId,
+					appUrl,
+					scanTime
 			    );
 			
 			fs.writeFileSync(
@@ -508,10 +507,9 @@ function generateHtmlReport(
     scanUrl,
     appName,
 	issueBaseUrl,
-	scanName,
-    createdAt,
-    executionId,
-    technology
+	scanId,
+    appUrl,
+    scanTime
 ){
 
 return `
@@ -555,57 +553,46 @@ th {
 
 <h1>HCL AppScan SAST Report</h1>
 
-<h3>Scan Details</h3>
+<h3>Scan Information</h3>
 
 <table>
 
 <tr>
-<th>Scan Name</th>
-<td>${scanName}</td>
+<th>Field</th>
+<th>Value</th>
 </tr>
 
 <tr>
-<th>Application</th>
-<td>${appName}</td>
+<td>Scan Type</td>
+<td>SAST</td>
 </tr>
 
 <tr>
-<th>Technology</th>
-<td>${technology}</td>
+<td>Scan ID</td>
+<td>
+<a href="${scanUrl}" target="_blank">
+${scanId}
+</a>
+</td>
 </tr>
 
 <tr>
-<th>Execution ID</th>
-<td>${executionId}</td>
+<td>Application Name</td>
+<td>
+<a href="${appUrl}" target="_blank">
+${appName}
+</a>
+</td>
 </tr>
 
 <tr>
-<th>Scan Time</th>
-<td>${createdAt}</td>
-</tr>
-
-<tr>
-<th>Repository</th>
+<td>Repository</td>
 <td>${process.env.GITHUB_REPOSITORY}</td>
 </tr>
 
 <tr>
-<th>Branch</th>
-<td>${process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME}</td>
-</tr>
-
-<tr>
-<th>Commit</th>
-<td>${process.env.GITHUB_SHA?.substring(0,7)}</td>
-</tr>
-
-<tr>
-<th>Scan URL</th>
-<td>
-<a href="${scanUrl}">
-Open in AppScan
-</a>
-</td>
+<td>Scan Time</td>
+<td>${scanTime}</td>
 </tr>
 
 </table>
