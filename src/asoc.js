@@ -158,6 +158,8 @@ async function getIssues(scanId) {
 
             issues =
                 issues || [];
+			
+			const enableGithubSecurity = process.env.INPUT_ENABLE_GITHUB_SECURITY !== 'false';
 
             const counts = {
 
@@ -428,88 +430,103 @@ ${prSection}
 
             }
 
-            const sarif = {
+if(enableGithubSecurity){
 
-                version: "2.1.0",
+    const sarif = {
 
-                runs: [
+        version: "2.1.0",
 
-                    {
+        runs: [
 
-                        tool: {
+            {
 
-                            driver: {
+                tool: {
 
-                                name:
-                                    "HCL AppScan SAST"
+                    driver: {
 
-                            }
-
-                        },
-
-                        results:
-
-                        issues.map(i => ({
-
-                            ruleId:
-                                i.IssueType || "AppScanIssue",
-
-                            level:
-                                mapLevel(
-                                    i.Severity
-                                ),
-
-                            message: {
-
-                                text:
-                                    i.IssueType
-
-                            },
-
-                            locations: [
-
-                                {
-
-                                    physicalLocation: {
-
-                                        artifactLocation: {
-
-                                            uri:
-                                                i.Location || "source"
-
-                                        },
-
-                                        region: {
-
-                                            startLine: 1
-
-                                        }
-
-                                    }
-
-                                }
-
-                            ]
-
-                        }))
+                        name:
+                            "HCL AppScan SAST"
 
                     }
 
-                ]
+                },
 
-            };
+                results:
 
-            fs.writeFileSync(
+                issues.map(i => ({
 
-                "appscan-results.sarif",
+                    ruleId:
+                        i.IssueType || "AppScanIssue",
 
-                JSON.stringify(
-                    sarif,
-                    null,
-                    2
-                )
+                    level:
+                        mapLevel(
+                            i.Severity
+                        ),
 
-            );
+                    message: {
+
+                        text:
+                            i.IssueType
+
+                    },
+
+                    locations: [
+
+                        {
+
+                            physicalLocation: {
+
+                                artifactLocation: {
+
+                                    uri:
+                                        i.Location || "source"
+
+                                },
+
+                                region: {
+
+                                    startLine: 1
+
+                                }
+
+                            }
+
+                        }
+
+                    ]
+
+                }))
+
+            }
+
+        ]
+
+    };
+
+    fs.writeFileSync(
+
+        "appscan-results.sarif",
+
+        JSON.stringify(
+            sarif,
+            null,
+            2
+        )
+
+    );
+
+    console.log(
+        "SARIF report generated"
+    );
+
+}
+else{
+
+    console.log(
+        "GitHub Security integration disabled"
+    );
+
+}
 
             resolve({
                 total,
