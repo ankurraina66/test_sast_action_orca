@@ -809,7 +809,31 @@ ${i.IssueType}
 
 <td>
 
-${i.Location || ""}
+${(() => {
+
+    const location =
+        i.Location || "";
+
+    const filePath =
+        location.split(":")[0];
+
+    const lineNumber =
+        location.split(":")[1] || "1";
+
+    const githubFileUrl =
+        `https://github.com/${repoName}/blob/${process.env.GITHUB_SHA}/${filePath}#L${lineNumber}`;
+
+    return `
+
+        <a href="${githubFileUrl}" target="_blank">
+
+            ${location}
+
+        </a>
+
+    `;
+
+})()}
 
 </td>
 
