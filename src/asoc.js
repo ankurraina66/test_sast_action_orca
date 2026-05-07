@@ -51,7 +51,7 @@ function login(key, secret) {
 
 }
 
-function getScanResults(scanId, prContext = {}) {
+function getScanResults(scanId) {
 
     return new Promise((resolve, reject) => {
 
@@ -68,7 +68,7 @@ function getScanResults(scanId, prContext = {}) {
         login(key, secret)
 
         .then(() =>
-            getIssues(scanId, prContext)
+            getIssues(scanId)
         )
 
         .then(resolve)
@@ -115,8 +115,7 @@ console.log("---------------------- inside  getSastScanDetails->", scanId);
         return null;
     }
 }
-async function getIssues(scanId, prContext = {}) {
-	console.log(">>>>>>>>>>>>>>>>>>>>>PR CONTEXT RECEIVED:", prContext);
+async function getIssues(scanId) {
     return new Promise((resolve, reject) => {
 
         const query =
@@ -275,25 +274,56 @@ try {
                 .substring(0,19);
 				
 			const isPR =
-    prContext.isPR || false;
-
-const prNumber =
-    prContext.prNumber || "";
-
-const branchName =
-    prContext.branchName || "";
+    process.env.GITHUB_EVENT_NAME === 'pull_request';
 
 const repoName =
-    prContext.repoName || process.env.GITHUB_REPOSITORY;
+    process.env.GITHUB_REPOSITORY || "";
+
+const branchName =
+    process.env.GITHUB_HEAD_REF ||
+    process.env.GITHUB_REF_NAME ||
+    "";
 
 const commitSha =
-    prContext.commitSha
-    ? prContext.commitSha.substring(0,7)
+    process.env.GITHUB_SHA
+    ? process.env.GITHUB_SHA.substring(0,7)
     : "";
+
+let prNumber = "";
+
+try {
+
+    if (
+        process.env.GITHUB_EVENT_PATH &&
+        fs.existsSync(process.env.GITHUB_EVENT_PATH)
+    ) {
+
+        const eventPayload =
+            JSON.parse(
+
+                fs.readFileSync(
+                    process.env.GITHUB_EVENT_PATH,
+                    'utf8'
+                )
+
+            );
+
+        prNumber =
+            eventPayload.pull_request?.number || "";
+
+    }
+
+} catch (e) {
+
+    console.log(
+        "Failed to read PR information:",
+        e.message
+    );
+
+}
 
 			const scanLabel = isPR ? "SAST PR Scan Summary" : "SAST Scan Summary";
 
-			console.log("?????????????????????????----------------------DEBUG: Final AppName used in summary ->", appName);
 
 			const prUrl =
  `https://github.com/${repoName}/pull/${prNumber}`;
@@ -302,7 +332,7 @@ const branchUrl =
  `https://github.com/${repoName}/tree/${branchName}`;
 
 const commitUrl =
- `https://github.com/${repoName}/commit/${prContext.commitSha}`;
+ `https://github.com/${repoName}/commit/${process.env.GITHUB_SHA}`;
 const issueBaseUrl =
  `${baseUrl}/main/myapps/${applicationId}/scans/${scanId}/scanIssues?executionId=${executionId}`;
 
@@ -373,8 +403,7 @@ ${prSection}
 					issueBaseUrl,
 					scanId,
 					appUrl,
-					scanTime,
-					prContext
+					scanTime
 			    );
 			
 			const fileName = isPR
@@ -518,23 +547,61 @@ function generateHtmlReport(
 	issueBaseUrl,
 	scanId,
     appUrl,
-    scanTime,
-	prContext = {}
+    scanTime
 )
 {
-const isPR = prContext.isPR || false;
+const isPR =
+    process.env.GITHUB_EVENT_NAME === 'pull_request';
 
-const prNumber = prContext.prNumber || "";
-const branchName = prContext.branchName || "";
-const repoName = prContext.repoName || process.env.GITHUB_REPOSITORY;
+const repoName =
+    process.env.GITHUB_REPOSITORY || "";
 
-const commitSha = prContext.commitSha
-    ? prContext.commitSha.substring(0,7)
+const branchName =
+    process.env.GITHUB_HEAD_REF ||
+    process.env.GITHUB_REF_NAME ||
+    "";
+
+const commitSha =
+    process.env.GITHUB_SHA
+    ? process.env.GITHUB_SHA.substring(0,7)
     : "";
+
+let prNumber = "";
+
+try {
+
+    if (
+        process.env.GITHUB_EVENT_PATH &&
+        fs.existsSync(process.env.GITHUB_EVENT_PATH)
+    ) {
+
+        const eventPayload =
+            JSON.parse(
+
+                fs.readFileSync(
+                    process.env.GITHUB_EVENT_PATH,
+                    'utf8'
+                )
+
+            );
+
+        prNumber =
+            eventPayload.pull_request?.number || "";
+
+    }
+
+} catch (e) {
+
+    console.log(
+        "Failed to read PR information:",
+        e.message
+    );
+
+}
 
 const prUrl = `https://github.com/${repoName}/pull/${prNumber}`;
 const branchUrl = `https://github.com/${repoName}/tree/${branchName}`;
-const commitUrl = `https://github.com/${repoName}/commit/${prContext.commitSha}`;
+const commitUrl = `https://github.com/${repoName}/commit/${process.env.GITHUB_SHA}`;
 
 return `
 
@@ -739,7 +806,7 @@ ${(i.Location || "").split(":").pop()}
 
 <a href="${issueBaseUrl}&filterIds=${i.Id}" target="_blank">
 
-View Fix in AppScan
+View Issue Details
 
 </a>
 
