@@ -845,11 +845,25 @@ ${(i.Location || "").split(":").pop()}
 
 <td>
 
-<a href="${issueBaseUrl}&filterIds=${i.Id}" target="_blank">
+${(() => {
 
-View Issue Details
+    const issueDetailsUrl =
 
-</a>
+        `${settings.getServiceUrl().replace('/api/v4','')}` +
+        `/main/myapps/${process.env.INPUT_APPLICATION_ID}` +
+        `/issues/${i.Id}`;
+
+    return `
+
+        <a href="${issueDetailsUrl}" target="_blank">
+
+            View Issue Details
+
+        </a>
+
+    `;
+
+})()}
 
 </td>
 
